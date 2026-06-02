@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <script type="module" src="./script.js"></script>
+        <title> Wireframe </title>
+        <link rel="icon" type="image/x-icon" href="./img/icon.png">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <p> selecione seu arquivo: <input type="file" id="picker" accept=".wf"></p>
+        <pre id="ajuda"> 
+            MODOS 
+                < 1 > - Ativa modo translação;
+                < 2 > - Ativa modo rotação;
+                < 3 > - Ativa modo escala;
+            EIXOS
+                < 4 > - Seleciona eixo X;
+                < 5 > - Seleciona eixo Y;
+                < 6 > - Seleciona eixo Z;
+            MANIPULAÇÃO
+                < - > - Decrementa em 1 no modo e no eixo selecionados;
+                < + > - Acresce em 1 no modo e no eixo selecionados;
+            PROJEÇÃO
+                < p > - Cicla entre os modos de projeção
+            EXEMPLO
+                < 1 4 + > - translada o objeto 1 unidade na direção positiva no eixo X;
+        </pre>
+        <canvas id="tela"></canvas>
+        <p id="modo"> Modo: Translação </p>
+        <p id="eixo"> Eixo: x </p>
+        <p id="proj"> Projeção: cavalier </p>
+    </body>
+</html>
