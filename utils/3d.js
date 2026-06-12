@@ -10,44 +10,106 @@ function toScreen([x, y], width, height, zoom = 100) {
     ];
 }
 
-function applyRotation([x, y, z], [rx, ry, rz]) {
-    const toRad = deg => deg * Math.PI / 180;
- 
-    // X
-    const ax = toRad(rx);
-    let y1 = y * Math.cos(ax) - z * Math.sin(ax);
-    let z1 = y * Math.sin(ax) + z * Math.cos(ax);
- 
-    // Y
-    const ay = toRad(ry);
-    let x2 = x  * Math.cos(ay) + z1 * Math.sin(ay);
-    let z2 = -x * Math.sin(ay) + z1 * Math.cos(ay);
- 
-    // Z
-    const az = toRad(rz);
-    let x3 = x2 * Math.cos(az) - y1 * Math.sin(az);
-    let y3 = x2 * Math.sin(az) + y1 * Math.cos(az);
- 
-    return [x3, y3, z2];
+function toRad(degrees) {
+    return degrees * Math.PI / 180;
 }
- 
-function applyTransform(point, translate, rotate, scale) {
-    let [x, y, z] = point;
- 
-    // aplica escala
-    x *= scale[0];
-    y *= scale[1];
-    z *= scale[2];
- 
-    // aplica rotação
-    [x, y, z] = applyRotation([x, y, z], rotate);
- 
-    // aplica translação
-    x += translate[0];
-    y += translate[1];
-    z += translate[2];
- 
-    return [x, y, z];
+
+function multiplyMatrices(a, b) {
+    return [
+        a[0] * b[0] + a[1] * b[4] + a[2] * b[8],
+        a[0] * b[1] + a[1] * b[5] + a[2] * b[9],
+        a[0] * b[2] + a[1] * b[6] + a[2] * b[10],
+        a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3],
+
+        a[4] * b[0] + a[5] * b[4] + a[6] * b[8],
+        a[4] * b[1] + a[5] * b[5] + a[6] * b[9],
+        a[4] * b[2] + a[5] * b[6] + a[6] * b[10],
+        a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7],
+
+        a[8] * b[0] + a[9] * b[4] + a[10] * b[8],
+        a[8] * b[1] + a[9] * b[5] + a[10] * b[9],
+        a[8] * b[2] + a[9] * b[6] + a[10] * b[10],
+        a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11]
+    ];
+}
+
+function translationMatrix([x, y, z]) {
+    return [
+        1, 0, 0, x,
+        0, 1, 0, y,
+        0, 0, 1, z
+    ];
+}
+
+function scaleMatrix([x, y, z]) {
+    return [
+        x, 0, 0, 0,
+        0, y, 0, 0,
+        0, 0, z, 0
+    ];
+}
+
+function rotationXMatrix(degrees) {
+    const angle = toRad(degrees);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+
+    return [
+        1, 0, 0, 0,
+        0, c, -s, 0,
+        0, s, c, 0
+    ];
+}
+
+function rotationYMatrix(degrees) {
+    const angle = toRad(degrees);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+
+    return [
+        c, 0, s, 0,
+        0, 1, 0, 0,
+        -s, 0, c, 0
+    ];
+}
+
+function rotationZMatrix(degrees) {
+    const angle = toRad(degrees);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+
+    return [
+        c, -s, 0, 0,
+        s, c, 0, 0,
+        0, 0, 1, 0
+    ];
+}
+
+function composeTransform(translate, rotate, scale) {
+    const scaleTransform = scaleMatrix(scale);
+    const rotateXTransform = rotationXMatrix(rotate[0]);
+    const rotateYTransform = rotationYMatrix(rotate[1]);
+    const rotateZTransform = rotationZMatrix(rotate[2]);
+    const translateTransform = translationMatrix(translate);
+
+    return multiplyMatrices(
+        translateTransform,
+        multiplyMatrices(
+            rotateZTransform,
+            multiplyMatrices(
+                rotateYTransform,
+                multiplyMatrices(rotateXTransform, scaleTransform)
+            )
+        )
+    );
+}
+
+function transformPoint([x, y, z], matrix) {
+    return [
+        matrix[0] * x + matrix[1] * y + matrix[2] * z + matrix[3],
+        matrix[4] * x + matrix[5] * y + matrix[6] * z + matrix[7],
+        matrix[8] * x + matrix[9] * y + matrix[10] * z + matrix[11]
+    ];
 }
 
 const AXIS = { x: 0, y: 1, z: 2 };
@@ -80,6 +142,7 @@ export class Wireframe {
         this.translate = params[index] ? params[index++].split(" ").map(Number) : [0,0,0];
         this.rotate    = params[index] ? params[index++].split(" ").map(Number) : [0,0,0];
         this.scale     = params[index] ? params[index++].split(" ").map(Number) : [1,1,1];
+        this.transform = composeTransform(this.translate, this.rotate, this.scale);
     }
 
     static async fromFile(path) {
@@ -99,12 +162,13 @@ export class Wireframe {
             perspectivexz: (point) => Projections.perspectiveXZ(point)
         };
         const applyProjection = projections[projection];
+        const transformedPoints = this.points.map(point => transformPoint(point, this.transform));
 
         // projeta
         for (let [i, j] of this.lines) {
 
-            let p1 = applyTransform(this.points[i], this.translate, this.rotate, this.scale);
-            let p2 = applyTransform(this.points[j], this.translate, this.rotate, this.scale);
+            let p1 = transformedPoints[i];
+            let p2 = transformedPoints[j];
 
             let proj1 = applyProjection(p1);
             let proj2 = applyProjection(p2);
@@ -118,22 +182,18 @@ export class Wireframe {
 
     // funções para as keybinds
 
-    applyTranslationDelta(coord, delta) {
-        this.translate[AXIS[coord]] += delta;
-    }
- 
-    applyRotationDelta(coord, delta) {
-        this.rotate[AXIS[coord]] += delta;
-    }
- 
-    applyScaleDelta(coord, delta) {
-        this.scale[AXIS[coord]] += delta;
+    updateTransform() {
+        this.transform = composeTransform(this.translate, this.rotate, this.scale);
     }
 
     applyDelta(mode, coord, delta) {
-        if (mode == '1') this.applyTranslationDelta(coord, delta);
-        if (mode == '2') this.applyRotationDelta(coord, delta);
-        if (mode == '3') this.applyScaleDelta(coord, delta);
+        const axisIndex = AXIS[coord];
+
+        if (mode == '1') this.translate[axisIndex] += delta;
+        if (mode == '2') this.rotate[axisIndex] += delta;
+        if (mode == '3') this.scale[axisIndex] += delta;
+
+        this.updateTransform();
     }
 
 }

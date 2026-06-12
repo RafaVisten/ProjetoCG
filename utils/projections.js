@@ -8,7 +8,7 @@ export function cavalier([x, y, z], angle = 45, lambda = 1) {
 }
 
 export function cabinet([x, y, z], angle = 45) {
-        return this.cavalier([x, y, z], angle, 0.5);
+        return cavalier([x, y, z], angle, 0.5);
 }   
 
 export function isometric([x, y, z]) {
