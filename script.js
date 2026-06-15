@@ -32,8 +32,9 @@ function cycleList(list, curr) {
 
 // main code
 
-let object = await Wireframe.fromFile('./objects/cube.wf');
-object.draw(tela.width, tela.height, 100, 'cavalier', 45);
+let object = await Wireframe.fromFile('./objects/figure.dat', null);
+object[0].draw(tela.width, tela.height, 1, 'cavalier', 45);
+
 
 // usa o file input pra mudar o objeto mostrado na tela
 picker.addEventListener('change', (event) => {
@@ -48,9 +49,10 @@ picker.addEventListener('change', (event) => {
     reader.onload = function(e) {
         const text = e.target.result;
 
-        object = new Wireframe(text);
+        object = Wireframe.fromFile(null, text);
 
-        object.draw(tela.width, tela.height, 100, 'cavalier', 45);
+
+        object[0].draw(tela.width, tela.height, 100, 'cavalier', 45);
     };
 
     reader.readAsText(file);
@@ -97,20 +99,20 @@ document.addEventListener('keydown', (e) => {
         document.getElementById("proj").innerHTML = "Projeção: "+proj;
         
         c.clearRect(0, 0, tela.width, tela.height);
-        object.draw(tela.width, tela.height, 100, proj);
+        object[0].draw(tela.width, tela.height, 100, proj);
         c.stroke();
     }
 
     const bindings = {
-        '+': () => object.applyDelta(mode, axis,  1),
-        '-':  () => object.applyDelta(mode, axis,  -1),
+        '+': () => object[0].applyDelta(mode, axis,  1),
+        '-':  () => object[0].applyDelta(mode, axis,  -1),
         'F1': () => toggleHelp()
     };
 
     if (bindings[e.key]) {
         c.clearRect(0, 0, tela.width, tela.height);
         bindings[e.key]();
-        object.draw(tela.width, tela.height, 100, proj);
+        object[0].draw(tela.width, tela.height, 100, proj);
         c.stroke();
     }
 });
