@@ -35,7 +35,6 @@ function cycleList(list, curr) {
 let object = await Wireframe.fromFile('./objects/figure.dat', null);
 object[0].draw(tela.width, tela.height, 1, 'cavalier', 45);
 
-
 // usa o file input pra mudar o objeto mostrado na tela
 picker.addEventListener('change', (event) => {
 
