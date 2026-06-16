@@ -1,40 +1,137 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    color: #f4f7fb;
+    background: #07090d;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 #tela {
     position: fixed;
-    top: 0;
-    left: 0;
+    inset: 0;
     z-index: 0;
+    background: #07090d;
+}
+
+.painel {
+    position: fixed;
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: rgba(12, 16, 22, 0.84);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(8px);
+}
+
+#arquivo {
+    top: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+#arquivo label {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+#picker {
+    max-width: 260px;
+    color: #f4f7fb;
+}
+
+#picker::file-selector-button {
+    margin-right: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #f4f7fb;
+    background: #28476d;
+    cursor: pointer;
+}
+
+#status {
+    top: 16px;
+    right: 16px;
+    min-width: 250px;
+    padding: 12px 14px;
+}
+
+#status p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+#status p + p,
+#selecao + p {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#objeto {
+    color: #ff7171;
+    font-weight: 700;
+}
+
+#selecao {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+#selecao button {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 6px;
+    padding: 7px 8px;
+    color: #f4f7fb;
+    background: #28476d;
+    cursor: pointer;
+}
+
+#selecao button:hover {
+    background: #345b89;
 }
 
 #ajuda {
-    position: relative; 
-    z-index: 1;
-}
-
-p {
-    position: relative;
-    z-index: 1;
-}
-
-#modo {
-    position: fixed;
-    top: 10px;
-    right: 20px;
-    z-index: 1;
+    left: 16px;
+    bottom: 16px;
+    width: min(420px, calc(100vw - 32px));
+    max-height: min(72vh, 620px);
     margin: 0;
+    padding: 14px 16px;
+    overflow: auto;
+    color: #dfe7f2;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
 }
 
-#eixo {
-    position: fixed;
-    top: 30px;
-    right: 20px;
-    z-index: 1;
-    margin: 0; 
+#ajuda[hidden] {
+    display: none;
 }
 
-#proj {
-    position: fixed;
-    top: 50px;
-    right: 20px;
-    z-index: 1;
-    margin: 0; 
+@media (max-width: 720px) {
+    #arquivo,
+    #status {
+        left: 12px;
+        right: 12px;
+        width: auto;
+    }
+
+    #status {
+        top: 72px;
+    }
+
+    #arquivo {
+        top: 12px;
+    }
 }

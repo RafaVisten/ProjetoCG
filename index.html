@@ -1,35 +1,54 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="pt-BR">
     <head>
         <meta charset="UTF-8">
         <script type="module" src="./script.js"></script>
-        <title> Wireframe </title>
+        <title> Objetos 3D </title>
         <link rel="icon" type="image/x-icon" href="./img/icon.png">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <p> selecione seu arquivo: <input type="file" id="picker" accept=".wf, .dat"></p>
-        <pre id="ajuda"> 
-            MODOS 
-                < 1 > - Ativa modo translação;
-                < 2 > - Ativa modo rotação;
-                < 3 > - Ativa modo escala;
-            EIXOS
-                < 4 > - Seleciona eixo X;
-                < 5 > - Seleciona eixo Y;
-                < 6 > - Seleciona eixo Z;
-            MANIPULAÇÃO
-                < - > - Decrementa em 1 no modo e no eixo selecionados;
-                < + > - Acresce em 1 no modo e no eixo selecionados;
-            PROJEÇÃO
-                < p > - Cicla entre os modos de projeção
-            EXEMPLO
-                < 1 4 + > - translada o objeto 1 unidade na direção positiva no eixo X;
-        </pre>
         <canvas id="tela"></canvas>
-        <p id="modo"> Modo: Translação </p>
-        <p id="eixo"> Eixo: x </p>
-        <p id="proj"> Projeção: cavalier </p>
+        <section id="arquivo" class="painel">
+            <label for="picker">Arquivo</label>
+            <input type="file" id="picker" accept=".dat,.wf">
+        </section>
+        <section id="status" class="painel">
+            <p id="figura"> Figura: - </p>
+            <p id="objeto"> Objeto: - </p>
+            <div id="selecao">
+                <button id="anterior" type="button">Anterior</button>
+                <button id="proximo" type="button">Próximo</button>
+            </div>
+            <p id="modo"> Modo: Translação </p>
+            <p id="eixo"> Eixo: x </p>
+            <p id="proj"> Projeção: Cavaleira </p>
+        </section>
+        <pre id="ajuda" class="painel">MODOS
+1 - Translação
+2 - Rotação
+3 - Escala
+
+OBJETOS
+TAB - Próximo objeto
+SHIFT + TAB - Objeto anterior
+, - Objeto anterior
+. - Próximo objeto
+
+EIXOS
+4 - Eixo X
+5 - Eixo Y
+6 - Eixo Z
+
+MANIPULAÇÃO
+- - Decrementa no modo/eixo selecionados
++ - Acrescenta no modo/eixo selecionados
+
+PROJEÇÃO
+P - Alterna a projeção
+
+EXEMPLO
+1 4 + translada o objeto selecionado em X</pre>
     </body>
 </html>

@@ -25,13 +25,16 @@ export function isometric([x, y, z]) {
         return [x1, y2];
 }   
 
-export function perspectiveZ([x, y, z], d = 5) {
-        const factor = d / (d + z);
+export function perspectiveZ([x, y, z], d = 500) {
+        const denominator = d + z;
+        const factor = Math.abs(denominator) < 0.001 ? 1 : d / denominator;
         return [x * factor, y * factor];
 }
 
-export function perspectiveXZ([x, y, z], dx = 5, dz = 5) {
-        const factorX = dx / (dx + x);
-        const factorZ = dz / (dz + z);
+export function perspectiveXZ([x, y, z], dx = 500, dz = 500) {
+        const denominatorX = dx + x;
+        const denominatorZ = dz + z;
+        const factorX = Math.abs(denominatorX) < 0.001 ? 1 : dx / denominatorX;
+        const factorZ = Math.abs(denominatorZ) < 0.001 ? 1 : dz / denominatorZ;
         return [x * factorZ, y * factorX * factorZ];
 }

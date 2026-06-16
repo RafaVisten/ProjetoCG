@@ -8,12 +8,15 @@ export function putpixel(x, y, color='white') {
     c.fillRect(Math.round(x), Math.round(y), 3, 3);
 }
 
-// drawline drawline
 export function drawline(x1, y1, x2, y2, color='white') {
     let dx = x2 - x1, dy = y2 - y1, x = x1, y = y1;
-    var steps, k, incX, incY;
+    var steps, incX, incY;
 
     steps = (Math.abs(dx) > Math.abs(dy)) ? Math.abs(dx) : Math.abs(dy);
+    if (steps === 0) {
+        putpixel(x, y, color);
+        return;
+    }
 
     incX = dx / steps, incY = dy / steps;
     
@@ -25,20 +28,27 @@ export function drawline(x1, y1, x2, y2, color='white') {
 }
 
 export function outlinePolygon(points, color='white') {
+    if (points.length < 2) return;
+
     let l = points.length;
-    drawline(points[0][0], points[0][1], points[l-1][0], points[l-1][1]);
+    drawline(points[0][0], points[0][1], points[l-1][0], points[l-1][1], color);
     for (let i=0;i<l-1;i++) {
         drawline(points[i][0], points[i][1], points[i+1][0], points[i+1][1], color);
     }
 }
 
 export function fillPolygon(points, line_color='white', fill_color='grey') {
+    if (points.length < 3) {
+        outlinePolygon(points, line_color);
+        return;
+    }
 
     function globalTableInit(points) {
         let l = points.length;
         let edges = [];
 
         for (let i=0;i<l;i++) {
+            let k;
             if (i<l-1) k = i+1;
             else k = 0;
 
@@ -80,9 +90,13 @@ export function fillPolygon(points, line_color='white', fill_color='grey') {
     }
 
     let g_table = globalTableInit(points);
+    if (g_table.length === 0) {
+        outlinePolygon(points, line_color);
+        return;
+    }
+
     let scanline = g_table[0].minY;
     let a_table = activeTableInit(g_table, scanline);
-    let parity = 0;
 
     g_table = g_table.filter(edge => edge.minY !== scanline); // remove edges consumed
     
@@ -90,7 +104,7 @@ export function fillPolygon(points, line_color='white', fill_color='grey') {
 
         a_table.sort((a, b) => a.x - b.x); // sort by x
 
-        for (let i = 0; i < a_table.length; i += 2) {
+        for (let i = 0; i + 1 < a_table.length; i += 2) {
             let x_start = Math.ceil(a_table[i].x);
             let x_end   = Math.floor(a_table[i + 1].x);
 

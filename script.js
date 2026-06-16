@@ -1,44 +1,97 @@
 import {Wireframe} from './utils/3d.js';
 
-// setup
+const tela = document.getElementById("tela");
+const c = tela.getContext("2d");
+const picker = document.getElementById("picker");
+const ajuda = document.getElementById("ajuda");
+const figuraLabel = document.getElementById("figura");
+const modoLabel = document.getElementById("modo");
+const eixoLabel = document.getElementById("eixo");
+const projLabel = document.getElementById("proj");
+const objetoLabel = document.getElementById("objeto");
+const anteriorButton = document.getElementById("anterior");
+const proximoButton = document.getElementById("proximo");
 
-var tela = document.getElementById("tela");
-var c = tela.getContext("2d");
+const MODES = { '1': 'Translação', '2': 'Rotação', '3': 'Escala' };
+const AXES = { '4': 'x', '5': 'y', '6': 'z' };
+const PROJECTIONS = [
+    { key: 'cavalier', label: 'Cavaleira' },
+    { key: 'cabinet', label: 'Cabinet' },
+    { key: 'isometric', label: 'Isométrica' },
+    { key: 'perspectivez', label: 'Perspectiva Z' },
+    { key: 'perspectivexz', label: 'Perspectiva XZ' }
+];
 
-var picker = document.getElementById("picker");
+let objects = [];
+let selectedIndex = 0;
+let mode = '1';
+let axis = 'x';
+let projectionIndex = 0;
+let viewport = Wireframe.coord_system;
 
-tela.width = window.innerWidth;
-tela.height = window.innerHeight;
-
-const max_x = tela.width-1;
-const max_y = tela.height-1;
-
-document.body.style.backgroundColor = "black";
-document.body.style.color = "white";
-document.getElementById("ajuda").style.display = "none";
+ajuda.hidden = true;
 
 function toggleHelp() {
-    let ajuda = document.getElementById("ajuda");
-    if (ajuda.style.display=="none") ajuda.style.display="block";
-    else ajuda.style.display="none";
+    ajuda.hidden = !ajuda.hidden;
 }
 
-function cycleList(list, curr) {
-    let len = list.length;
-    let index = list.indexOf(curr);
-    if (index == len-1) return list[0]
-    else return list[index+1]
+function resizeCanvas() {
+    tela.width = window.innerWidth;
+    tela.height = window.innerHeight;
 }
 
-// main code
+function selectedProjection() {
+    return PROJECTIONS[projectionIndex];
+}
 
-let object = await Wireframe.fromFile('./objects/figure.dat', null);
-object[0].draw(tela.width, tela.height, 1, 'cavalier', 45);
+function updateLabels() {
+    const selected = objects[selectedIndex];
+
+    figuraLabel.innerHTML = `Figura: ${Wireframe.fig_name || '-'}`;
+    modoLabel.innerHTML = `Modo: ${MODES[mode]}`;
+    eixoLabel.innerHTML = `Eixo: ${axis}`;
+    projLabel.innerHTML = `Projeção: ${selectedProjection().label}`;
+    objetoLabel.innerHTML = selected ? `Objeto: ${selected.name} (${selectedIndex + 1}/${objects.length})` : 'Objeto: -';
+}
+
+function redraw() {
+    c.clearRect(0, 0, tela.width, tela.height);
+
+    for (let i = 0; i < objects.length; i++) {
+        if (i === selectedIndex) continue;
+        objects[i].draw(tela.width, tela.height, viewport, selectedProjection().key, false);
+    }
+
+    if (objects[selectedIndex]) {
+        objects[selectedIndex].draw(tela.width, tela.height, viewport, selectedProjection().key, true);
+    }
+
+    c.stroke();
+}
+
+function updateViewport() {
+    viewport = Wireframe.sceneViewport(objects, selectedProjection().key);
+}
+
+function setObjects(nextObjects) {
+    objects = nextObjects;
+    selectedIndex = 0;
+    updateViewport();
+    updateLabels();
+    redraw();
+}
+
+function selectObject(delta) {
+    selectedIndex = (selectedIndex + delta + objects.length) % objects.length;
+    updateLabels();
+    redraw();
+}
+
+resizeCanvas();
+setObjects(await Wireframe.fromFile('./objects/figure.dat', null));
 
 // usa o file input pra mudar o objeto mostrado na tela
 picker.addEventListener('change', (event) => {
-
-    c.clearRect(0, 0, tela.width, tela.height);
 
     const file = event.target.files[0];
     if (!file) return;
@@ -46,74 +99,75 @@ picker.addEventListener('change', (event) => {
     const reader = new FileReader();
 
     reader.onload = function(e) {
-        const text = e.target.result;
-
-        object = Wireframe.fromFile(null, text);
-
-
-        object[0].draw(tela.width, tela.height, 100, 'cavalier', 45);
+        try {
+            setObjects(Wireframe.parseFile(e.target.result));
+        } catch (error) {
+            console.error(error);
+            objetoLabel.innerHTML = 'Objeto: erro ao carregar arquivo';
+        }
     };
 
     reader.readAsText(file);
 });
 
-let mode='1', axis='x', proj='cavalier';
-let MODO = { '1': 'Translação', '2': 'Rotação', '3': 'Escala' };
-let PROJ = ['cavalier', 'cabinet', 'isometric', 'perspectivez', 'perspectivexz']
+anteriorButton.addEventListener('click', () => selectObject(-1));
+proximoButton.addEventListener('click', () => selectObject(1));
 
 // recebe inputs do teclado
 document.addEventListener('keydown', (e) => {
 
-    if (!object) return;
+    if (!objects.length) return;
 
     let press = e.key.toLowerCase();
+
+    if (press == 'tab') {
+        e.preventDefault();
+        selectObject(e.shiftKey ? -1 : 1);
+        return;
+    }
 
     // modo de transformação: 1 - translação, 2 - rotação, 3 - escala
     if (['1', '2', '3'].includes(press)) {
         if (press != mode) {
             mode = press; 
-            document.getElementById("modo").innerHTML = "Modo: "+MODO[press];
-
-            console.log('mode: '+mode);
+            updateLabels();
         }
     }
     
     // modo de eixo
-    if(['4', '5', '6'].includes(press)) {
-        if (press == '4') press = 'x';
-        if (press == '5') press = 'y';
-        if (press == '6') press = 'z';
-
-        if (press != axis) {
-            axis = press; 
-            document.getElementById("eixo").innerHTML = "Eixo: "+press;
-
-            console.log('axis: '+axis);
+    if(Object.keys(AXES).includes(press)) {
+        if (AXES[press] != axis) {
+            axis = AXES[press]; 
+            updateLabels();
         }
     }
 
     // modo de projeção
     if (press == 'p') {
-        proj = cycleList(PROJ, proj);
-        document.getElementById("proj").innerHTML = "Projeção: "+proj;
-        
-        c.clearRect(0, 0, tela.width, tela.height);
-        object[0].draw(tela.width, tela.height, 100, proj);
-        c.stroke();
+        projectionIndex = (projectionIndex + 1) % PROJECTIONS.length;
+        updateViewport();
+        updateLabels();
+        redraw();
+        return;
     }
 
     const bindings = {
-        '+': () => object[0].applyDelta(mode, axis,  1),
-        '-':  () => object[0].applyDelta(mode, axis,  -1),
+        '+': () => objects[selectedIndex].applyDelta(mode, axis,  1),
+        '=': () => objects[selectedIndex].applyDelta(mode, axis,  1),
+        '-':  () => objects[selectedIndex].applyDelta(mode, axis,  -1),
+        ',':  () => selectObject(-1),
+        '.':  () => selectObject(1),
         'F1': () => toggleHelp()
     };
 
     if (bindings[e.key]) {
-        c.clearRect(0, 0, tela.width, tela.height);
+        if (e.key == 'F1') e.preventDefault();
         bindings[e.key]();
-        object[0].draw(tela.width, tela.height, 100, proj);
-        c.stroke();
+        redraw();
     }
 });
 
-c.stroke();
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    redraw();
+});
