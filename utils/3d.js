@@ -288,6 +288,17 @@ export class Wireframe {
         return this.transformedPoints().map(point => applyProjection(point));
     }
 
+    screenArea(points, indices, screenPoints) {
+        let area = 0;
+        const n = indices.length;
+        for (let i = 0; i < n; i++) {
+            const [x1, y1] = screenPoints[indices[i]];
+            const [x2, y2] = screenPoints[indices[(i + 1) % n]];
+            area += (x1 * y2 - x2 * y1);
+        }
+        return area;
+    }
+
     getProjectedGeometry(width, height, viewport, projection = 'cavalier', angle = 45, lambda = 1) {
         const applyProjection = projectionFunction(projection, angle, lambda);
         const transformedPoints = this.points.map(point => transformPoint(point, this.transform));
@@ -324,7 +335,11 @@ export class Wireframe {
                 } else {
                     fv = vv;
                 }
-                face.visible = (face.normal[0]*fv[0] + face.normal[1]*fv[1] + face.normal[2]*fv[2]) >= 0;
+                if (projection === 'isometric' || projection === 'cavalier' || projection === 'cabinet') {
+                    face.visible = this.screenArea(null, face.points, screenPoints) >= 0;
+                } else {
+                    face.visible = (face.normal[0]*fv[0] + face.normal[1]*fv[1] + face.normal[2]*fv[2]) >= 0;
+                }
             } else {
                 face.normal = [0, 0, 1];
                 face.visible = true;
