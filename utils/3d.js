@@ -335,10 +335,10 @@ export class Wireframe {
                 } else {
                     fv = vv;
                 }
-                if (projection === 'isometric' || projection === 'cavalier' || projection === 'cabinet') {
-                    face.visible = this.screenArea(null, face.points, screenPoints) >= 0;
-                } else {
+                if (projection === 'perspectivez') {
                     face.visible = (face.normal[0]*fv[0] + face.normal[1]*fv[1] + face.normal[2]*fv[2]) >= 0;
+                } else {
+                    face.visible = this.screenArea(null, face.points, screenPoints) >= 0;
                 }
             } else {
                 face.normal = [0, 0, 1];
