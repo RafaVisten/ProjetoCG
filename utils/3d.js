@@ -75,6 +75,22 @@ function projectionFunction(projection, angle = 45, lambda = 1) {
     return projections[projection] || projections.cavalier;
 }
 
+function viewVector(projection, angle = 45, lambda = 1) {
+    const rad = angle * Math.PI / 180;
+    const ry = 45 * Math.PI / 180;
+    const rx = Math.atan(1 / Math.sqrt(2));
+    const vectors = {
+        cavalier:    [-lambda * Math.cos(rad), -lambda * Math.sin(rad), 1],
+        cabinet:     [-0.5 * Math.cos(rad),    -0.5 * Math.sin(rad),    1],
+        isometric:   [-Math.sin(ry), Math.sin(rx) * Math.cos(ry), Math.cos(rx) * Math.cos(ry)],
+        perspectivez: [0, 0, 1],
+        perspectivexz: [-1, 0, 1]
+    };
+    const v = vectors[projection] || vectors.cavalier;
+    const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    return [v[0]/len, v[1]/len, v[2]/len];
+}
+
 export class Wireframe {
     static coord_system = [-100, 100, -100, 100];
     static fig_name = '';
@@ -276,6 +292,7 @@ export class Wireframe {
         const applyProjection = projectionFunction(projection, angle, lambda);
         const transformedPoints = this.points.map(point => transformPoint(point, this.transform));
         const screenPoints = transformedPoints.map(point => toScreen(applyProjection(point), width, height, viewport));
+        const vv = viewVector(projection, angle, lambda);
 
         for (let face of this.faces) {
             const zSum = face.points.reduce((sum, pointIndex) => sum + transformedPoints[pointIndex][2], 0);
@@ -285,7 +302,20 @@ export class Wireframe {
                 const p1 = transformedPoints[face.points[1]];
                 const p2 = transformedPoints[face.points[2]];
                 face.normal = computeNormal(p0, p1, p2);
-                face.visible = face.normal[2] >= 0;
+                let fv;
+                if (projection === 'perspectivexz') {
+                    const n = face.points.length;
+                    const cx = face.points.reduce((s, i) => s + transformedPoints[i][0], 0) / n;
+                    const cy = face.points.reduce((s, i) => s + transformedPoints[i][1], 0) / n;
+                    const cz = face.points.reduce((s, i) => s + transformedPoints[i][2], 0) / n;
+                    const dx = 500, dz = 500;
+                    const ex = cx - (-dx), ey = cy - 0, ez = cz - (-dz);
+                    const el = Math.sqrt(ex*ex + ey*ey + ez*ez);
+                    fv = el < 0.001 ? vv : [ex/el, ey/el, ez/el];
+                } else {
+                    fv = vv;
+                }
+                face.visible = (face.normal[0]*fv[0] + face.normal[1]*fv[1] + face.normal[2]*fv[2]) >= 0;
             } else {
                 face.normal = [0, 0, 1];
                 face.visible = true;
