@@ -44,6 +44,16 @@ function transformPoint([x, y, z], matrix) {
     ];
 }
 
+function computeNormal(p0, p1, p2) {
+    const u = [p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]];
+    const v = [p2[0]-p0[0], p2[1]-p0[1], p2[2]-p0[2]];
+    return [
+        u[1]*v[2] - u[2]*v[1],
+        u[2]*v[0] - u[0]*v[2],
+        u[0]*v[1] - u[1]*v[0]
+    ];
+}
+
 const AXIS = { x: 0, y: 1, z: 2 };
 
 function rgbToCss([r, g, b], alpha = 1) {
@@ -114,7 +124,9 @@ export class Wireframe {
         this.faces.push({
             points: pointIndices,
             color,
-            zAverage: 0
+            zAverage: 0,
+            normal: [0, 0, 0],
+            visible: true
         });
     }
 
@@ -268,9 +280,30 @@ export class Wireframe {
         for (let face of this.faces) {
             const zSum = face.points.reduce((sum, pointIndex) => sum + transformedPoints[pointIndex][2], 0);
             face.zAverage = zSum / face.points.length;
+            if (face.points.length >= 3) {
+                const p0 = transformedPoints[face.points[0]];
+                const p1 = transformedPoints[face.points[1]];
+                const p2 = transformedPoints[face.points[2]];
+                face.normal = computeNormal(p0, p1, p2);
+                face.visible = face.normal[2] >= 0;
+            } else {
+                face.normal = [0, 0, 1];
+                face.visible = true;
+            }
         }
 
         return { screenPoints };
+    }
+
+    getVisibleFaces(screenPoints, selected = false) {
+        return this.faces
+            .filter(face => face.visible)
+            .map(face => ({
+                points: face.points.map(pointIndex => screenPoints[pointIndex]),
+                color: face.color,
+                zAverage: face.zAverage,
+                selected
+            }));
     }
 
     drawFaces(screenPoints, selected = false) {
@@ -297,8 +330,7 @@ export class Wireframe {
     draw(width, height, viewport, projection = 'cavalier', selected = false, angle = 45, lambda = 1) {
         const { screenPoints } = this.getProjectedGeometry(width, height, viewport, projection, angle, lambda);
 
-        if (this.faces.length > 0) this.drawFaces(screenPoints, selected);
-        this.drawLines(screenPoints, selected);
+        return { screenPoints };
     }
 
     // funções para as keybinds
