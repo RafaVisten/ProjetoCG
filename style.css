@@ -69,6 +69,7 @@ body {
     margin: 0;
     font-size: 14px;
     line-height: 1.55;
+    max-width: 250px;
 }
 
 #status p + p,

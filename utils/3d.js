@@ -357,7 +357,7 @@ export class Wireframe {
         }
     }
 
-    drawLines(screenPoints, selected = false) {
+    drawLines(screenPoints, selected = false) { 
         for (let [i, j] of this.lines) {
             let [x1, y1] = screenPoints[i];
             let [x2, y2] = screenPoints[j];

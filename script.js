@@ -48,10 +48,10 @@ function selectedProjection() {
 function updateLabels() {
     const selected = objects[selectedIndex];
 
-    figuraLabel.innerHTML = `Figura: ${Wireframe.fig_name || '-'}`;
-    modoLabel.innerHTML = `Modo: ${MODES[mode]}`;
-    eixoLabel.innerHTML = `Eixo: ${axis}`;
-    projLabel.innerHTML = `Projeção: ${selectedProjection().label}`;
+    figuraLabel.innerHTML = `<b>Figura: </b> ${Wireframe.fig_name || '-'}`;
+    modoLabel.innerHTML = `<b>Modo:</b> ${MODES[mode]}`;
+    eixoLabel.innerHTML = `<b>Eixo:</b> ${axis}`;
+    projLabel.innerHTML = `<b>Projeção:</b> ${selectedProjection().label}`;
     objetoLabel.innerHTML = selected ? `Objeto: ${selected.name} (${selectedIndex + 1}/${objects.length})` : 'Objeto: -';
 }
 
@@ -80,16 +80,13 @@ function redraw() {
 
     for (let face of allVisibleFaces) {
         const fillColor = rgbToCssLocal(face.color, face.selected ? 0.78 : 0.55);
-        const lineColor = face.selected ? 'red' : rgbToCssLocal(face.color, 1);
+        const lineColor = face.selected ? 'red' : '';
         fillPolygon(face.points, lineColor, fillColor);
-    }
-
-    for (let { obj, screenPoints, selected } of allGeometry) {
-        obj.drawLines(screenPoints, selected);
     }
 
     c.stroke();
 }
+
 
 function updateViewport() {
     viewport = Wireframe.sceneViewport(objects, selectedProjection().key);
