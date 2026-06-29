@@ -312,6 +312,15 @@ export class Wireframe {
                     const ex = cx - (-dx), ey = cy - 0, ez = cz - (-dz);
                     const el = Math.sqrt(ex*ex + ey*ey + ez*ez);
                     fv = el < 0.001 ? vv : [ex/el, ey/el, ez/el];
+                } else if (projection === 'perspectivez') {
+                    const n = face.points.length;
+                    const cx = face.points.reduce((s, i) => s + transformedPoints[i][0], 0) / n;
+                    const cy = face.points.reduce((s, i) => s + transformedPoints[i][1], 0) / n;
+                    const cz = face.points.reduce((s, i) => s + transformedPoints[i][2], 0) / n;
+                    const d = 500;
+                    const ex = cx, ey = cy, ez = cz - (-d);
+                    const el = Math.sqrt(ex*ex + ey*ey + ez*ez);
+                    fv = el < 0.001 ? vv : [ex/el, ey/el, ez/el];
                 } else {
                     fv = vv;
                 }
