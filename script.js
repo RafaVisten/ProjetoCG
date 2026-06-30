@@ -74,7 +74,7 @@ function redraw() {
         }
     }
 
-    allVisibleFaces.sort((a, b) => a.zAverage - b.zAverage);
+    allVisibleFaces.sort((a, b) => b.zAverage - a.zAverage);
 
     for (let face of allVisibleFaces) {
         const fillColor = rgbToCssLocal(face.color, face.selected ? 0.78 : 0.55);
@@ -84,7 +84,6 @@ function redraw() {
 
     c.stroke();
 }
-
 
 function updateViewport() {
     viewport = Wireframe.sceneViewport(objects, selectedProjection().key);

@@ -53,6 +53,10 @@ function computeNormal(p0, p1, p2) {
     ];
 }
 
+function dot(a, b) {
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+}
+
 const AXIS = { x: 0, y: 1, z: 2 };
 
 function project(projection, angle = 45, lambda = 1) {
@@ -298,8 +302,8 @@ export class Wireframe {
         const vv = viewVector(projection, angle, lambda);
 
         for (let face of this.faces) {
-            const zSum = face.points.reduce((sum, pointIndex) => sum + transformedPoints[pointIndex][2], 0);
-            face.zAverage = zSum / face.points.length;
+            const depthSum = face.points.reduce((sum, pointIndex) => sum + dot(transformedPoints[pointIndex], vv), 0);
+            face.zAverage = depthSum / face.points.length;
             if (face.points.length >= 3) {
                 const p0 = transformedPoints[face.points[0]];
                 const p1 = transformedPoints[face.points[1]];
