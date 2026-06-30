@@ -1,4 +1,5 @@
 import {Wireframe} from './utils/3d.js';
+import { fillPolygon } from './utils/drawing.js';
 
 const tela = document.getElementById("tela");
 const c = tela.getContext("2d");
@@ -47,27 +48,45 @@ function selectedProjection() {
 function updateLabels() {
     const selected = objects[selectedIndex];
 
-    figuraLabel.innerHTML = `Figura: ${Wireframe.fig_name || '-'}`;
-    modoLabel.innerHTML = `Modo: ${MODES[mode]}`;
-    eixoLabel.innerHTML = `Eixo: ${axis}`;
-    projLabel.innerHTML = `Projeção: ${selectedProjection().label}`;
+    figuraLabel.innerHTML = `<b>Figura: </b> ${Wireframe.fig_name || '-'}`;
+    modoLabel.innerHTML = `<b>Modo:</b> ${MODES[mode]}`;
+    eixoLabel.innerHTML = `<b>Eixo:</b> ${axis}`;
+    projLabel.innerHTML = `<b>Projeção:</b> ${selectedProjection().label}`;
     objetoLabel.innerHTML = selected ? `Objeto: ${selected.name} (${selectedIndex + 1}/${objects.length})` : 'Objeto: -';
+}
+
+function rgbToCssLocal([r, g, b], alpha = 1) {
+    const clamp = v => Math.max(0, Math.min(1, v));
+    const [red, green, blue] = [r, g, b].map(v => Math.round(clamp(v) * 255));
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function redraw() {
     c.clearRect(0, 0, tela.width, tela.height);
 
+    const allVisibleFaces = [];
+    const allGeometry = [];
+
     for (let i = 0; i < objects.length; i++) {
-        if (i === selectedIndex) continue;
-        objects[i].draw(tela.width, tela.height, viewport, selectedProjection().key, false);
+        const selected = (i === selectedIndex);
+        const { screenPoints } = objects[i].draw(tela.width, tela.height, viewport, selectedProjection().key, selected);
+        allGeometry.push({ obj: objects[i], screenPoints, selected });
+        if (objects[i].faces.length > 0) {
+            allVisibleFaces.push(...objects[i].getVisibleFaces(screenPoints, selected));
+        }
     }
 
-    if (objects[selectedIndex]) {
-        objects[selectedIndex].draw(tela.width, tela.height, viewport, selectedProjection().key, true);
+    allVisibleFaces.sort((a, b) => a.zAverage - b.zAverage);
+
+    for (let face of allVisibleFaces) {
+        const fillColor = rgbToCssLocal(face.color, face.selected ? 0.78 : 0.55);
+        const lineColor = face.selected ? 'red' : '';
+        fillPolygon(face.points, lineColor, fillColor);
     }
 
     c.stroke();
 }
+
 
 function updateViewport() {
     viewport = Wireframe.sceneViewport(objects, selectedProjection().key);

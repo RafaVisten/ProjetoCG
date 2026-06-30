@@ -44,16 +44,19 @@ function transformPoint([x, y, z], matrix) {
     ];
 }
 
-const AXIS = { x: 0, y: 1, z: 2 };
-
-function rgbToCss([r, g, b], alpha = 1) {
-    const clamp = (value) => Math.max(0, Math.min(1, value));
-    const [red, green, blue] = [r, g, b].map(value => Math.round(clamp(value) * 255));
-
-    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+function computeNormal(p0, p1, p2) {
+    const u = [p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]];
+    const v = [p2[0]-p0[0], p2[1]-p0[1], p2[2]-p0[2]];
+    return [
+        u[1]*v[2] - u[2]*v[1],
+        u[2]*v[0] - u[0]*v[2],
+        u[0]*v[1] - u[1]*v[0]
+    ];
 }
 
-function projectionFunction(projection, angle = 45, lambda = 1) {
+const AXIS = { x: 0, y: 1, z: 2 };
+
+function project(projection, angle = 45, lambda = 1) {
     const projections = {
         cavalier: (point) => Projections.cavalier(point, angle, lambda),
         cabinet:  (point) => Projections.cabinet(point, angle),
@@ -63,6 +66,22 @@ function projectionFunction(projection, angle = 45, lambda = 1) {
     };
 
     return projections[projection] || projections.cavalier;
+}
+
+function viewVector(projection, angle = 45, lambda = 1) {
+    const rad = angle * Math.PI / 180;
+    const ry = 45 * Math.PI / 180;
+    const rx = Math.atan(1 / Math.sqrt(2));
+    const vectors = {
+        cavalier:    [-lambda * Math.cos(rad), -lambda * Math.sin(rad), 1],
+        cabinet:     [-0.5 * Math.cos(rad),    -0.5 * Math.sin(rad),    1],
+        isometric:   [-Math.sin(ry), Math.sin(rx) * Math.cos(ry), Math.cos(rx) * Math.cos(ry)],
+        perspectivez: [0, 0, 1],
+        perspectivexz: [-1, 0, 1]
+    };
+    const v = vectors[projection] || vectors.cavalier;
+    const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    return [v[0]/len, v[1]/len, v[2]/len];
 }
 
 export class Wireframe {
@@ -114,7 +133,9 @@ export class Wireframe {
         this.faces.push({
             points: pointIndices,
             color,
-            zAverage: 0
+            zAverage: 0,
+            normal: [0, 0, 0],
+            visible: true
         });
     }
 
@@ -255,22 +276,81 @@ export class Wireframe {
     }
 
     projectedPoints(projection = 'cavalier', angle = 45, lambda = 1) {
-        const applyProjection = projectionFunction(projection, angle, lambda);
+        const applyProjection = project(projection, angle, lambda);
 
         return this.transformedPoints().map(point => applyProjection(point));
     }
 
+    screenArea(points, indices, screenPoints) {
+        let area = 0;
+        const n = indices.length;
+        for (let i = 0; i < n; i++) {
+            const [x1, y1] = screenPoints[indices[i]];
+            const [x2, y2] = screenPoints[indices[(i + 1) % n]];
+            area += (x1 * y2 - x2 * y1);
+        }
+        return area;
+    }
+
     getProjectedGeometry(width, height, viewport, projection = 'cavalier', angle = 45, lambda = 1) {
-        const applyProjection = projectionFunction(projection, angle, lambda);
+        const applyProjection = project(projection, angle, lambda);
         const transformedPoints = this.points.map(point => transformPoint(point, this.transform));
         const screenPoints = transformedPoints.map(point => toScreen(applyProjection(point), width, height, viewport));
+        const vv = viewVector(projection, angle, lambda);
 
         for (let face of this.faces) {
             const zSum = face.points.reduce((sum, pointIndex) => sum + transformedPoints[pointIndex][2], 0);
             face.zAverage = zSum / face.points.length;
+            if (face.points.length >= 3) {
+                const p0 = transformedPoints[face.points[0]];
+                const p1 = transformedPoints[face.points[1]];
+                const p2 = transformedPoints[face.points[2]];
+                face.normal = computeNormal(p0, p1, p2);
+                let fv;
+                if (projection === 'perspectivexz') {
+                    const n = face.points.length;
+                    const cx = face.points.reduce((s, i) => s + transformedPoints[i][0], 0) / n;
+                    const cy = face.points.reduce((s, i) => s + transformedPoints[i][1], 0) / n;
+                    const cz = face.points.reduce((s, i) => s + transformedPoints[i][2], 0) / n;
+                    const dx = 500, dz = 500;
+                    const ex = cx - (-dx), ey = cy - 0, ez = cz - (-dz);
+                    const el = Math.sqrt(ex*ex + ey*ey + ez*ez);
+                    fv = el < 0.001 ? vv : [ex/el, ey/el, ez/el];
+                } else if (projection === 'perspectivez') {
+                    const n = face.points.length;
+                    const cx = face.points.reduce((s, i) => s + transformedPoints[i][0], 0) / n;
+                    const cy = face.points.reduce((s, i) => s + transformedPoints[i][1], 0) / n;
+                    const cz = face.points.reduce((s, i) => s + transformedPoints[i][2], 0) / n;
+                    const d = 500;
+                    const ex = cx, ey = cy, ez = cz - (-d);
+                    const el = Math.sqrt(ex*ex + ey*ey + ez*ez);
+                    fv = el < 0.001 ? vv : [ex/el, ey/el, ez/el];
+                } else {
+                    fv = vv;
+                }
+                if (projection === 'perspectivez') {
+                    face.visible = (face.normal[0]*fv[0] + face.normal[1]*fv[1] + face.normal[2]*fv[2]) >= 0;
+                } else {
+                    face.visible = this.screenArea(null, face.points, screenPoints) >= 0;
+                }
+            } else {
+                face.normal = [0, 0, 1];
+                face.visible = true;
+            }
         }
 
         return { screenPoints };
+    }
+
+    getVisibleFaces(screenPoints, selected = false) {
+        return this.faces
+            .filter(face => face.visible)
+            .map(face => ({
+                points: face.points.map(pointIndex => screenPoints[pointIndex]),
+                color: face.color,
+                zAverage: face.zAverage,
+                selected
+            }));
     }
 
     drawFaces(screenPoints, selected = false) {
@@ -278,14 +358,14 @@ export class Wireframe {
 
         for (let face of orderedFaces) {
             const points = face.points.map(pointIndex => screenPoints[pointIndex]);
-            const fillColor = rgbToCss(face.color, selected ? 0.78 : 0.55);
-            const lineColor = selected ? 'red' : rgbToCss(face.color, 1);
+            const fillColor = `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, ${selected ? 0.78 : 0.55})`;
+            const lineColor = selected ? 'red' : `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, 1)`;
 
             fillPolygon(points, lineColor, fillColor);
         }
     }
 
-    drawLines(screenPoints, selected = false) {
+    drawLines(screenPoints, selected = false) { 
         for (let [i, j] of this.lines) {
             let [x1, y1] = screenPoints[i];
             let [x2, y2] = screenPoints[j];
@@ -297,8 +377,7 @@ export class Wireframe {
     draw(width, height, viewport, projection = 'cavalier', selected = false, angle = 45, lambda = 1) {
         const { screenPoints } = this.getProjectedGeometry(width, height, viewport, projection, angle, lambda);
 
-        if (this.faces.length > 0) this.drawFaces(screenPoints, selected);
-        this.drawLines(screenPoints, selected);
+        return { screenPoints };
     }
 
     // funções para as keybinds
