@@ -56,14 +56,7 @@ function computeNormal(p0, p1, p2) {
 
 const AXIS = { x: 0, y: 1, z: 2 };
 
-function rgbToCss([r, g, b], alpha = 1) {
-    const clamp = (value) => Math.max(0, Math.min(1, value));
-    const [red, green, blue] = [r, g, b].map(value => Math.round(clamp(value) * 255));
-
-    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function projectionFunction(projection, angle = 45, lambda = 1) {
+function project(projection, angle = 45, lambda = 1) {
     const projections = {
         cavalier: (point) => Projections.cavalier(point, angle, lambda),
         cabinet:  (point) => Projections.cabinet(point, angle),
@@ -283,7 +276,7 @@ export class Wireframe {
     }
 
     projectedPoints(projection = 'cavalier', angle = 45, lambda = 1) {
-        const applyProjection = projectionFunction(projection, angle, lambda);
+        const applyProjection = project(projection, angle, lambda);
 
         return this.transformedPoints().map(point => applyProjection(point));
     }
@@ -300,7 +293,7 @@ export class Wireframe {
     }
 
     getProjectedGeometry(width, height, viewport, projection = 'cavalier', angle = 45, lambda = 1) {
-        const applyProjection = projectionFunction(projection, angle, lambda);
+        const applyProjection = project(projection, angle, lambda);
         const transformedPoints = this.points.map(point => transformPoint(point, this.transform));
         const screenPoints = transformedPoints.map(point => toScreen(applyProjection(point), width, height, viewport));
         const vv = viewVector(projection, angle, lambda);
@@ -365,8 +358,8 @@ export class Wireframe {
 
         for (let face of orderedFaces) {
             const points = face.points.map(pointIndex => screenPoints[pointIndex]);
-            const fillColor = rgbToCss(face.color, selected ? 0.78 : 0.55);
-            const lineColor = selected ? 'red' : rgbToCss(face.color, 1);
+            const fillColor = `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, ${selected ? 0.78 : 0.55})`;
+            const lineColor = selected ? 'red' : `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, 1)`;
 
             fillPolygon(points, lineColor, fillColor);
         }
