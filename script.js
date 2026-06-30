@@ -65,12 +65,10 @@ function redraw() {
     c.clearRect(0, 0, tela.width, tela.height);
 
     const allVisibleFaces = [];
-    const allGeometry = [];
 
     for (let i = 0; i < objects.length; i++) {
         const selected = (i === selectedIndex);
-        const { screenPoints } = objects[i].draw(tela.width, tela.height, viewport, selectedProjection().key, selected);
-        allGeometry.push({ obj: objects[i], screenPoints, selected });
+        const { screenPoints } = objects[i].draw(tela.width, tela.height, viewport, selectedProjection().key);
         if (objects[i].faces.length > 0) {
             allVisibleFaces.push(...objects[i].getVisibleFaces(screenPoints, selected));
         }

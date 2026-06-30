@@ -1,4 +1,3 @@
-import { drawline, fillPolygon } from './drawing.js';
 import * as Projections from './projections.js'
 import * as Matrix from './matrix.js'
 
@@ -353,28 +352,7 @@ export class Wireframe {
             }));
     }
 
-    drawFaces(screenPoints, selected = false) {
-        const orderedFaces = [...this.faces].sort((a, b) => b.zAverage - a.zAverage);
-
-        for (let face of orderedFaces) {
-            const points = face.points.map(pointIndex => screenPoints[pointIndex]);
-            const fillColor = `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, ${selected ? 0.78 : 0.55})`;
-            const lineColor = selected ? 'red' : `rgba(${face.color[0]}, ${face.color[1]}, ${face.color[2]}, 1)`;
-
-            fillPolygon(points, lineColor, fillColor);
-        }
-    }
-
-    drawLines(screenPoints, selected = false) { 
-        for (let [i, j] of this.lines) {
-            let [x1, y1] = screenPoints[i];
-            let [x2, y2] = screenPoints[j];
-
-            drawline(x1, y1, x2, y2, selected ? 'red' : 'white');
-        }
-    }
-
-    draw(width, height, viewport, projection = 'cavalier', selected = false, angle = 45, lambda = 1) {
+    draw(width, height, viewport, projection = 'cavalier', angle = 45, lambda = 1) {
         const { screenPoints } = this.getProjectedGeometry(width, height, viewport, projection, angle, lambda);
 
         return { screenPoints };
